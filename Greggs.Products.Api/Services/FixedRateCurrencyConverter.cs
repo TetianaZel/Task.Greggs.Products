@@ -46,11 +46,11 @@ public class FixedRateCurrencyConverter : ICurrencyConverter
         };
     }
 
-    public Task<decimal> ConvertAsync(decimal amount, Currency from, Currency to, CancellationToken cancellationToken = default)
+    public ValueTask<decimal> ConvertAsync(decimal amount, Currency from, Currency to, CancellationToken cancellationToken = default)
     {
         if (from == to)
         {
-            return Task.FromResult(amount);
+            return new ValueTask<decimal>(amount);
         }
 
         if (!_rates.TryGetValue(from.Code, out var fromRate))
@@ -66,6 +66,6 @@ public class FixedRateCurrencyConverter : ICurrencyConverter
         var amountInBase = amount / fromRate;
         var converted = amountInBase * toRate;
 
-        return Task.FromResult(Math.Round(converted, 2, MidpointRounding.ToEven));
+        return new ValueTask<decimal>(Math.Round(converted, 2, MidpointRounding.ToEven));
     }
 }

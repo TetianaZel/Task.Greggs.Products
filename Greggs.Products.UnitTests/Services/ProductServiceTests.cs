@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -29,7 +28,7 @@ public class ProductServiceTests
     [Fact]
     public async Task GetProducts_PassesPagingToDataAccess()
     {
-        _dataAccess.Setup(d => d.List(2, 3)).Returns(Array.Empty<Product>());
+        _dataAccess.Setup(d => d.List(2, 3)).Returns(AsyncEnumerable.Empty<Product>());
 
         _ = (await CreateSut().GetProductsAsync(2, 3, Currency.Gbp.Code)).ToList();
 
@@ -40,7 +39,7 @@ public class ProductServiceTests
     public async Task GetProducts_ConvertsPriceAndTagsCurrency()
     {
         _dataAccess.Setup(d => d.List(0, 5))
-                   .Returns(new[] { new Product { Name = "Sausage Roll", PriceInPounds = 1m } });
+                   .Returns(new[] { new Product { Name = "Sausage Roll", PriceInPounds = 1m } }.ToAsyncEnumerable());
         _converter.Setup(c => c.ConvertAsync(1m, Currency.Gbp, Currency.Eur, It.IsAny<CancellationToken>())).ReturnsAsync(1.11m);
 
         var result = (await CreateSut().GetProductsAsync(0, 5, "eur")).Single();

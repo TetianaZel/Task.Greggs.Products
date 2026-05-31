@@ -53,9 +53,15 @@ public class ProductService : IProductService
             throw new ValidationException(string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.CurrencyNotSupported, currency));
         }
 
-        var products = _productData.List(pageStart, pageSize) ?? Enumerable.Empty<Product>();
+        var products = await _productData.List(pageStart, pageSize).ToListAsync(cancellationToken);
 
         var results = new List<ProductDto>();
+
+        if (products is null)
+        {
+            return results;
+        }
+
         foreach (var p in products)
         {
             var price = await _currencyConverter.ConvertAsync(p.PriceInPounds, _sourceCurrency, targetCurrency, cancellationToken).ConfigureAwait(false);
