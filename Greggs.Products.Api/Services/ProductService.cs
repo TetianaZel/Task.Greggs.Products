@@ -4,20 +4,21 @@ using System.Linq;
 using Greggs.Products.Api.DataAccess;
 using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Services.Currency;
+using Microsoft.Extensions.Options;
 
 namespace Greggs.Products.Api.Services;
 
 public class ProductService : IProductService
 {
-    private const string SourceCurrency = "GBP";
-
     private readonly IDataAccess<Product> _productData;
     private readonly ICurrencyConverter _currencyConverter;
+    private readonly string _sourceCurrency;
 
-    public ProductService(IDataAccess<Product> productData, ICurrencyConverter currencyConverter)
+    public ProductService(IDataAccess<Product> productData, ICurrencyConverter currencyConverter, IOptions<CurrencyOptions> options)
     {
         _productData = productData ?? throw new ArgumentNullException(nameof(productData));
         _currencyConverter = currencyConverter ?? throw new ArgumentNullException(nameof(currencyConverter));
+        _sourceCurrency = options.Value.BaseCurrency;
     }
 
     public IEnumerable<ProductDto> GetProducts(int? pageStart, int? pageSize, string currency)
@@ -26,7 +27,7 @@ public class ProductService : IProductService
         if (pageSize is < 0) throw new ArgumentOutOfRangeException(nameof(pageSize));
 
         var targetCurrency = string.IsNullOrWhiteSpace(currency)
-            ? SourceCurrency
+            ? _sourceCurrency
             : currency.Trim().ToUpperInvariant();
 
         if (!_currencyConverter.IsSupported(targetCurrency))
@@ -37,7 +38,7 @@ public class ProductService : IProductService
         return products.Select(p => new ProductDto
         {
             Name = p.Name,
-            Price = _currencyConverter.Convert(p.PriceInPounds, SourceCurrency, targetCurrency),
+            Price = _currencyConverter.Convert(p.PriceInPounds, _sourceCurrency, targetCurrency),
             Currency = targetCurrency
         }).ToList();
     }
