@@ -1,6 +1,9 @@
 using System;
+using System.Globalization;
 using System.Linq;
+using Greggs.Products.Api;
 using Greggs.Products.Api.DataAccess;
+using Greggs.Products.Api.Exceptions;
 using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Services;
 using Greggs.Products.Api.Services.Currency;
@@ -12,20 +15,23 @@ namespace Greggs.Products.UnitTests.Services;
 
 public class ProductServiceTests
 {
-    private readonly Mock<IDataAccess<Product>> _dataAccess = new(MockBehavior.Strict);
-    private readonly Mock<ICurrencyConverter> _converter = new(MockBehavior.Strict);
-    private readonly Mock<IOptions<CurrencyOptions>> _options = new(MockBehavior.Strict);
+    private readonly Mock<IDataAccess<Product>> _dataAccess = new();
+    private readonly Mock<ICurrencyConverter> _converter = new();
+    private readonly IOptions<CurrencyOptions> _options =
+        Options.Create(new CurrencyOptions { BaseCurrency = Constants.Defaults.Currency });
 
-    private ProductService CreateSut() => new(_dataAccess.Object, _converter.Object, _options.Object);
+    private ProductService CreateSut()
+    {
+        return new ProductService(_dataAccess.Object, _converter.Object, _options);
+    }
 
     [Fact]
     public void GetProducts_PassesPagingToDataAccess()
     {
-        _dataAccess.Setup(d => d.List(2, 3)).Returns(Array.Empty<Product>()).Verifiable();
-        _converter.Setup(c => c.IsSupported("GBP")).Returns(true);
-        _options.Setup(o => o.Value).Returns(new CurrencyOptions { BaseCurrency = "GBP" });
+        _dataAccess.Setup(d => d.List(2, 3)).Returns(Array.Empty<Product>());
+        _converter.Setup(c => c.IsSupported(Constants.Defaults.Currency)).Returns(true);
 
-        _ = CreateSut().GetProducts(2, 3, "GBP").ToList();
+        _ = CreateSut().GetProducts(2, 3, Constants.Defaults.Currency).ToList();
 
         _dataAccess.Verify(d => d.List(2, 3), Times.Once);
     }
@@ -33,12 +39,10 @@ public class ProductServiceTests
     [Fact]
     public void GetProducts_ConvertsPriceAndTagsCurrency()
     {
-        _dataAccess
-            .Setup(d => d.List(0, 5))
-            .Returns(new[] { new Product { Name = "Sausage Roll", PriceInPounds = 1m } });
+        _dataAccess.Setup(d => d.List(0, 5))
+                   .Returns(new[] { new Product { Name = "Sausage Roll", PriceInPounds = 1m } });
         _converter.Setup(c => c.IsSupported("EUR")).Returns(true);
-        _options.Setup(o => o.Value).Returns(new CurrencyOptions { BaseCurrency = "GBP" });
-        _converter.Setup(c => c.Convert(1m, "GBP", "EUR")).Returns(1.11m);
+        _converter.Setup(c => c.Convert(1m, Constants.Defaults.Currency, "EUR")).Returns(1.11m);
 
         var result = CreateSut().GetProducts(0, 5, "eur").Single();
 
@@ -48,41 +52,30 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public void GetProducts_DefaultsToGbpWhenCurrencyMissing()
+    public void GetProducts_UnsupportedCurrency_ThrowsValidationException_AndShortCircuits()
     {
-        _dataAccess
-            .Setup(d => d.List(null, null))
-            .Returns(new[] { new Product { Name = "Yum Yum", PriceInPounds = 0.70m } });
-        _options.Setup(o => o.Value).Returns(new CurrencyOptions { BaseCurrency = "GBP" });
-        _converter.Setup(c => c.IsSupported("GBP")).Returns(true);
-        _converter.Setup(c => c.Convert(0.70m, "GBP", "GBP")).Returns(0.70m);
+        _converter.Setup(c => c.IsSupported("USD")).Returns(false);
 
-        var result = CreateSut().GetProducts(null, null, null).Single();
+        var ex = Assert.Throws<ValidationException>(() => CreateSut().GetProducts(0, 5, "USD").ToList());
+        var expected = string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.CurrencyNotSupported, "USD");
+        Assert.Equal(expected, ex.Message);
 
-        Assert.Equal("GBP", result.Currency);
-        Assert.Equal(0.70m, result.Price);
+        _dataAccess.Verify(d => d.List(It.IsAny<int?>(), It.IsAny<int?>()), Times.Never);
     }
 
     [Fact]
-    public void GetProducts_UnsupportedCurrency_Throws()
+    public void GetProducts_NegativePageStart_ThrowsValidationException()
     {
-        _converter.Setup(c => c.IsSupported("USD")).Returns(false);
-        _options.Setup(o => o.Value).Returns(new CurrencyOptions { BaseCurrency = "GBP" });
-        var ex = Assert.Throws<ArgumentException>(() => CreateSut().GetProducts(0, 5, "USD").ToList());
-        Assert.Contains("USD", ex.Message);
-        _dataAccess.VerifyNoOtherCalls();
+        var ex = Assert.Throws<ValidationException>(
+            () => CreateSut().GetProducts(-1, 5, Constants.Defaults.Currency).ToList());
+        Assert.Equal(Constants.ErrorMessages.PageStartNegative, ex.Message);
     }
 
-    [Theory]
-    [InlineData(-1, 5)]
-    [InlineData(0, -1)]
-    public void GetProducts_NegativePaging_Throws(int pageStart, int pageSize)
+    [Fact]
+    public void GetProducts_NegativePageSize_ThrowsValidationException()
     {
-        _options.Setup(o => o.Value).Returns(new CurrencyOptions { BaseCurrency = "GBP" });
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => CreateSut().GetProducts(pageStart, pageSize, "GBP").ToList());
-
-        _dataAccess.VerifyNoOtherCalls();
-        _converter.VerifyNoOtherCalls();
+        var ex = Assert.Throws<ValidationException>(
+            () => CreateSut().GetProducts(0, -1, Constants.Defaults.Currency).ToList());
+        Assert.Equal(Constants.ErrorMessages.PageSizeNegative, ex.Message);
     }
 }

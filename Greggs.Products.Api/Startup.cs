@@ -1,4 +1,5 @@
 using Greggs.Products.Api.DataAccess;
+using Greggs.Products.Api.Middleware;
 using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Services;
 using Greggs.Products.Api.Services.Currency;
@@ -6,7 +7,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace Greggs.Products.Api;
 
@@ -30,13 +30,13 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
-        if (env.IsDevelopment())
-        {
-            app.UseDeveloperExceptionPage();
-        }
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         app.UseSwagger();
-        app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "Greggs Products API V1"); });
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "Greggs Products API V1");
+        });
 
         app.UseHttpsRedirection();
 
@@ -44,6 +44,9 @@ public class Startup
 
         app.UseAuthorization();
 
-        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+        });
     }
 }

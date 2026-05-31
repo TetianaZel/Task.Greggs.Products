@@ -4,7 +4,6 @@ using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Greggs.Products.Api.Controllers;
 
@@ -13,31 +12,20 @@ namespace Greggs.Products.Api.Controllers;
 public class ProductController : ControllerBase
 {
     private readonly IProductService _productService;
-    private readonly ILogger<ProductController> _logger;
 
-    public ProductController(IProductService productService, ILogger<ProductController> logger)
+    public ProductController(IProductService productService)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>Gets the latest list of products, with prices in the requested currency (default GBP).</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult<IEnumerable<ProductDto>> Get(
-        [FromQuery] int pageStart = 0,
-        [FromQuery] int pageSize = 5,
-        [FromQuery] string currency = "GBP")
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public ActionResult<IEnumerable<ProductDto>> Get([FromQuery] int pageStart = Constants.Defaults.PageStart, [FromQuery] int pageSize = Constants.Defaults.PageSize,
+        [FromQuery] string currency = Constants.Defaults.Currency)
     {
-        try
-        {
-            return Ok(_productService.GetProducts(pageStart, pageSize, currency));
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Invalid product request: {Message}", ex.Message);
-            return BadRequest(ex.Message);
-        }
+        return Ok(_productService.GetProducts(pageStart, pageSize, currency));
     }
 }
