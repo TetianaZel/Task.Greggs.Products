@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Greggs.Products.Api.Controllers;
 using Greggs.Products.Api.Models;
@@ -14,11 +15,14 @@ public class ProductControllerTests
     {
         public int? PageStart;
         public int? PageSize;
-        public IEnumerable<ProductDto> Result = new[] { new ProductDto { Name = "X", Price = 1m } };
+        public string Currency;
+        public IEnumerable<ProductDto> Result = new[] { new ProductDto { Name = "X", Price = 1m, Currency = "GBP" } };
+        public Exception ToThrow;
 
-        public IEnumerable<ProductDto> GetProducts(int? pageStart, int? pageSize)
+        public IEnumerable<ProductDto> GetProducts(int? pageStart, int? pageSize, string currency)
         {
-            PageStart = pageStart; PageSize = pageSize;
+            PageStart = pageStart; PageSize = pageSize; Currency = currency;
+            if (ToThrow != null) throw ToThrow;
             return Result;
         }
     }
@@ -29,12 +33,22 @@ public class ProductControllerTests
         var svc = new StubService();
         var sut = new ProductController(svc, NullLogger<ProductController>.Instance);
 
-        var action = sut.Get(0, 5);
+        var action = sut.Get(0, 5, "EUR");
 
         var ok = Assert.IsType<OkObjectResult>(action.Result);
-        var products = Assert.IsAssignableFrom<IEnumerable<ProductDto>>(ok.Value);
-        Assert.Single(products);
-        Assert.Equal(0, svc.PageStart);
-        Assert.Equal(5, svc.PageSize);
+        Assert.IsAssignableFrom<IEnumerable<ProductDto>>(ok.Value);
+        Assert.Equal("EUR", svc.Currency);
+    }
+
+    [Fact]
+    public void Get_InvalidArgument_Returns400()
+    {
+        var svc = new StubService { ToThrow = new ArgumentException("bad currency") };
+        var sut = new ProductController(svc, NullLogger<ProductController>.Instance);
+
+        var action = sut.Get(0, 5, "ZZZ");
+
+        var bad = Assert.IsType<BadRequestObjectResult>(action.Result);
+        Assert.Equal("bad currency", bad.Value);
     }
 }

@@ -5,5 +5,8 @@ namespace Greggs.Products.Api.Services;
 
 public interface IProductService
 {
-    IEnumerable<ProductDto> GetProducts(int? pageStart, int? pageSize);
+    /// <summary>
+    /// Returns the latest menu of products, optionally paged, with prices converted to <paramref name="currency"/>.
+    /// </summary>
+    IEnumerable<ProductDto> GetProducts(int? pageStart, int? pageSize, string currency);
 }

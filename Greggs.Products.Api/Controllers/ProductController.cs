@@ -21,14 +21,23 @@ public class ProductController : ControllerBase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    /// <summary>Gets the latest list of products.</summary>
+    /// <summary>Gets the latest list of products, with prices in the requested currency (default GBP).</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public ActionResult<IEnumerable<ProductDto>> Get(
         [FromQuery] int pageStart = 0,
-        [FromQuery] int pageSize = 5)
+        [FromQuery] int pageSize = 5,
+        [FromQuery] string currency = "GBP")
     {
-        var products = _productService.GetProducts(pageStart, pageSize);
-        return Ok(products);
+        try
+        {
+            return Ok(_productService.GetProducts(pageStart, pageSize, currency));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid product request: {Message}", ex.Message);
+            return BadRequest(ex.Message);
+        }
     }
 }

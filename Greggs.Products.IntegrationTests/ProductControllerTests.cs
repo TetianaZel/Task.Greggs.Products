@@ -1,6 +1,6 @@
 namespace Greggs.Products.IntegrationTests
 {
-    public class UnitTest1
+    public class ProductControllerTests
     {
         [Fact]
         public void Test1()
