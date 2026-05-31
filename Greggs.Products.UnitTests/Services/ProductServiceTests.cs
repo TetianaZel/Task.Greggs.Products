@@ -1,60 +1,42 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Greggs.Products.Api.DataAccess;
 using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Services;
 using Greggs.Products.Api.Services.Currency;
+using Moq;
 using Xunit;
 
 namespace Greggs.Products.UnitTests.Services;
 
 public class ProductServiceTests
 {
-    private sealed class FakeDataAccess : IDataAccess<Product>
-    {
-        public int? LastPageStart;
-        public int? LastPageSize;
-        public IEnumerable<Product> Result = Array.Empty<Product>();
+    private readonly Mock<IDataAccess<Product>> _dataAccess = new(MockBehavior.Strict);
+    private readonly Mock<ICurrencyConverter> _converter = new(MockBehavior.Strict);
 
-        public IEnumerable<Product> List(int? pageStart, int? pageSize)
-        {
-            LastPageStart = pageStart;
-            LastPageSize = pageSize;
-            return Result;
-        }
-    }
-
-    private sealed class FakeConverter : ICurrencyConverter
-    {
-        public decimal Rate = 1m;
-        public bool SupportAll = true;
-        public bool IsSupported(string c) => SupportAll;
-        public decimal Convert(decimal amount, string from, string to) => Math.Round(amount * Rate, 2);
-    }
+    private ProductService CreateSut() => new(_dataAccess.Object, _converter.Object);
 
     [Fact]
     public void GetProducts_PassesPagingToDataAccess()
     {
-        var data = new FakeDataAccess();
-        var sut = new ProductService(data, new FakeConverter());
+        _dataAccess.Setup(d => d.List(2, 3)).Returns(Array.Empty<Product>()).Verifiable();
+        _converter.Setup(c => c.IsSupported("GBP")).Returns(true);
 
-        _ = sut.GetProducts(2, 3, "GBP").ToList();
+        _ = CreateSut().GetProducts(2, 3, "GBP").ToList();
 
-        Assert.Equal(2, data.LastPageStart);
-        Assert.Equal(3, data.LastPageSize);
+        _dataAccess.Verify(d => d.List(2, 3), Times.Once);
     }
 
     [Fact]
     public void GetProducts_ConvertsPriceAndTagsCurrency()
     {
-        var data = new FakeDataAccess
-        {
-            Result = new[] { new Product { Name = "Sausage Roll", PriceInPounds = 1m } }
-        };
-        var sut = new ProductService(data, new FakeConverter { Rate = 1.11m });
+        _dataAccess
+            .Setup(d => d.List(0, 5))
+            .Returns(new[] { new Product { Name = "Sausage Roll", PriceInPounds = 1m } });
+        _converter.Setup(c => c.IsSupported("EUR")).Returns(true);
+        _converter.Setup(c => c.Convert(1m, "GBP", "EUR")).Returns(1.11m);
 
-        var result = sut.GetProducts(0, 5, "eur").Single();
+        var result = CreateSut().GetProducts(0, 5, "eur").Single();
 
         Assert.Equal("Sausage Roll", result.Name);
         Assert.Equal(1.11m, result.Price);
@@ -64,13 +46,13 @@ public class ProductServiceTests
     [Fact]
     public void GetProducts_DefaultsToGbpWhenCurrencyMissing()
     {
-        var data = new FakeDataAccess
-        {
-            Result = new[] { new Product { Name = "Yum Yum", PriceInPounds = 0.70m } }
-        };
-        var sut = new ProductService(data, new FakeConverter { Rate = 1m });
+        _dataAccess
+            .Setup(d => d.List(null, null))
+            .Returns(new[] { new Product { Name = "Yum Yum", PriceInPounds = 0.70m } });
+        _converter.Setup(c => c.IsSupported("GBP")).Returns(true);
+        _converter.Setup(c => c.Convert(0.70m, "GBP", "GBP")).Returns(0.70m);
 
-        var result = sut.GetProducts(null, null, null).Single();
+        var result = CreateSut().GetProducts(null, null, null).Single();
 
         Assert.Equal("GBP", result.Currency);
         Assert.Equal(0.70m, result.Price);
@@ -79,8 +61,11 @@ public class ProductServiceTests
     [Fact]
     public void GetProducts_UnsupportedCurrency_Throws()
     {
-        var sut = new ProductService(new FakeDataAccess(), new FakeConverter { SupportAll = false });
-        Assert.Throws<ArgumentException>(() => sut.GetProducts(0, 5, "USD").ToList());
+        _converter.Setup(c => c.IsSupported("USD")).Returns(false);
+
+        var ex = Assert.Throws<ArgumentException>(() => CreateSut().GetProducts(0, 5, "USD").ToList());
+        Assert.Contains("USD", ex.Message);
+        _dataAccess.VerifyNoOtherCalls();
     }
 
     [Theory]
@@ -88,7 +73,10 @@ public class ProductServiceTests
     [InlineData(0, -1)]
     public void GetProducts_NegativePaging_Throws(int pageStart, int pageSize)
     {
-        var sut = new ProductService(new FakeDataAccess(), new FakeConverter());
-        Assert.Throws<ArgumentOutOfRangeException>(() => sut.GetProducts(pageStart, pageSize, "GBP").ToList());
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => CreateSut().GetProducts(pageStart, pageSize, "GBP").ToList());
+
+        _dataAccess.VerifyNoOtherCalls();
+        _converter.VerifyNoOtherCalls();
     }
 }
