@@ -36,19 +36,20 @@ ProductController ──► IProductService ──► IDataAccess<Product>
 
 - **Controller** - HTTP only, no try/catch. All error translation is owned by the middleware.
 - **`IProductService`** - orchestrates fetch + convert + project to DTO. Throws `ValidationException` for bad input.
-- **`ICurrencyConverter`** - `FixedRateCurrencyConverter` reads rates from `appsettings.json` (`Currency:ExchangeRates`). Decimal arithmetic, banker's rounding to 2dp.
+- **`ICurrencyConverter`** - `FixedRateCurrencyConverter` uses a hardcoded GBP/EUR rate table (1 GBP = 1.11 EUR). Decimal arithmetic, banker's rounding to 2dp. In production this would be replaced by a 3rd party FX feed; the interface is the seam.
 - **`ProductDto`** - public contract, decoupled from the internal `Product` model.
 - **`ExceptionHandlingMiddleware`** - centralised error handling. Maps `ValidationException` -> `400`, everything else -> `500`, both as `ProblemDetails`. Hides internal messages on `500`.
 - **`Constants.ErrorMessages` / `Constants.Defaults`** - single source of truth for user-facing strings and default values; tests assert against the same constants.
 
-Configuration:
+Configuration (`appsettings.json`):
 
 ```
 "Currency": {
-  "BaseCurrency": "GBP",
-  "ExchangeRates": { "EUR": 1.11 }
+  "BaseCurrency": "GBP"
 }
 ```
+
+Only the base currency is configurable; conversion rates live in `FixedRateCurrencyConverter` for the purposes of this task.
 
 ## Projects
 
@@ -72,8 +73,8 @@ These were considered and deliberately left out:
 
 ## Known limitations
 
-- The GBP->EUR rate is **stale by design**: config-driven, no audit trail beyond Git history. Fine for the brief, wrong for live e-commerce.
-- `IOptions<T>` is snapshot-at-startup; rate changes need a restart. Swap for `IOptionsMonitor<T>` if that matters.
+- The GBP->EUR rate is **hardcoded by design** in `FixedRateCurrencyConverter`. Fine for the brief, wrong for live e-commerce - any change needs a code update and redeploy.
+- `IOptions<CurrencyOptions>` is snapshot-at-startup; base currency changes need a restart. Swap for `IOptionsMonitor<T>` if that matters.
 
 ## If I had another hour
 
