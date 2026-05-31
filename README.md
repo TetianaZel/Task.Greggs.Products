@@ -34,12 +34,12 @@ ProductController ──► IProductService ──► IDataAccess<Product>
                               └──► ICurrencyConverter ──► IOptions<CurrencyOptions>
 ```
 
-- **Controller** — HTTP only, no try/catch. All error translation is owned by the middleware.
-- **`IProductService`** — orchestrates fetch + convert + project to DTO. Throws `ValidationException` for bad input.
-- **`ICurrencyConverter`** — `FixedRateCurrencyConverter` reads rates from `appsettings.json` (`Currency:ExchangeRates`). Decimal arithmetic, banker's rounding to 2dp.
-- **`ProductDto`** — public contract, decoupled from the internal `Product` model.
-- **`ExceptionHandlingMiddleware`** — centralised error handling. Maps `ValidationException` -> `400`, everything else -> `500`, both as `ProblemDetails`. Hides internal messages on `500`.
-- **`Constants.ErrorMessages` / `Constants.Defaults`** — single source of truth for user-facing strings and default values; tests assert against the same constants.
+- **Controller** - HTTP only, no try/catch. All error translation is owned by the middleware.
+- **`IProductService`** - orchestrates fetch + convert + project to DTO. Throws `ValidationException` for bad input.
+- **`ICurrencyConverter`** - `FixedRateCurrencyConverter` reads rates from `appsettings.json` (`Currency:ExchangeRates`). Decimal arithmetic, banker's rounding to 2dp.
+- **`ProductDto`** - public contract, decoupled from the internal `Product` model.
+- **`ExceptionHandlingMiddleware`** - centralised error handling. Maps `ValidationException` -> `400`, everything else -> `500`, both as `ProblemDetails`. Hides internal messages on `500`.
+- **`Constants.ErrorMessages` / `Constants.Defaults`** - single source of truth for user-facing strings and default values; tests assert against the same constants.
 
 Configuration:
 
@@ -60,20 +60,19 @@ Configuration:
 
 `TestBase` in the integration project pins configuration via `AddInMemoryCollection`, so tests don't depend on whatever's in `appsettings.json`.
 
-CI runs `restore` → `build` → `test` on every push and PR. Badge above reflects `main`.
+CI runs `restore` -> `build` -> `test` on every push and PR. Badge above reflects `main`.
 
 ## Things I chose not to do
 
 These were considered and deliberately left out:
 
-- **Live FX provider** — would drag in `HttpClient` lifetime, Polly, distributed caching, fallback behaviour, secrets. The `ICurrencyConverter` seam is there if it's ever needed.
-- **MediatR / AutoMapper / CQRS** — pure ceremony at this scale.
-- **API versioning, auth, output caching, health checks** — out of scope; trivial to add behind the existing seams.
-- **Upgrade to .NET 8 LTS** — out of scope of the user stories. Would warrant its own PR (and I'd audit the test SDK versions while at it).
+- **Live FX provider** - would drag in `HttpClient` lifetime, Polly, distributed caching, fallback behaviour, secrets. The `ICurrencyConverter` seam is there if it's ever needed.
+- **API versioning, auth, output caching, health checks** - out of scope.
+- **Upgrade to .NET 8 LTS** - out of scope of the user stories.
 
 ## Known limitations
 
-- The GBP->EUR rate is **stale by design** — config-driven, no audit trail beyond Git history. Fine for the brief, wrong for live e-commerce.
+- The GBP->EUR rate is **stale by design**: config-driven, no audit trail beyond Git history. Fine for the brief, wrong for live e-commerce.
 - `IOptions<T>` is snapshot-at-startup; rate changes need a restart. Swap for `IOptionsMonitor<T>` if that matters.
 
 ## If I had another hour
@@ -81,7 +80,6 @@ These were considered and deliberately left out:
 1. Response caching on `/product` keyed by `pageStart|pageSize|currency`.
 2. A live FX adapter behind `ICurrencyConverter` with Polly retry + `IDistributedCache`.
 
----
 ---
 
 # Original brief
