@@ -2,7 +2,6 @@ using Greggs.Products.Api.DataAccess;
 using Greggs.Products.Api.Middleware;
 using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Services;
-using Greggs.Products.Api.Services.Currency;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;

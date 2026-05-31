@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 using Greggs.Products.Api;
 using Greggs.Products.Api.Controllers;
 using Greggs.Products.Api.Exceptions;
@@ -19,63 +22,66 @@ public class ProductControllerTests
     }
 
     [Fact]
-    public void Get_DelegatesToService_AndReturnsOk()
+    public async Task Get_DelegatesToService_AndReturnsOk()
     {
         var expected = new[] { new ProductDto { Name = "Sausage Roll", Price = 1m, Currency = "GBP" } };
         _service
-            .Setup(s => s.GetProducts(0, 5, "EUR"))
-            .Returns(expected);
+            .Setup(s => s.GetProductsAsync(0, 5, "EUR", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
 
-        var action = CreateSut().Get(0, 5, "EUR");
+        var action = await CreateSut().Get(0, 5, "EUR");
 
         var ok = Assert.IsType<OkObjectResult>(action.Result);
         Assert.Same(expected, ok.Value);
-        _service.Verify(s => s.GetProducts(0, 5, "EUR"), Times.Once);
+        _service.Verify(s => s.GetProductsAsync(0, 5, "EUR", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public void Get_UsesDefaultQueryValues_WhenNoneSupplied()
+    public async Task Get_UsesDefaultQueryValues_WhenNoneSupplied()
     {
         _service
-            .Setup(s => s.GetProducts(
+            .Setup(s => s.GetProductsAsync(
                 Constants.Defaults.PageStart,
                 Constants.Defaults.PageSize,
-                Constants.Defaults.Currency))
-            .Returns(System.Array.Empty<ProductDto>());
+                Constants.Defaults.Currency,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(System.Array.Empty<ProductDto>());
 
-        var action = CreateSut().Get();
+        var action = await CreateSut().Get();
 
         Assert.IsType<OkObjectResult>(action.Result);
         _service.Verify(
-            s => s.GetProducts(
+            s => s.GetProductsAsync(
                 Constants.Defaults.PageStart,
                 Constants.Defaults.PageSize,
-                Constants.Defaults.Currency),
+                Constants.Defaults.Currency,
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public void Get_WhenServiceThrowsValidationException_PropagatesToMiddleware()
+    public async Task Get_WhenServiceThrowsValidationException_PropagatesToMiddleware()
     {
+        var expectedMessage = string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.CurrencyNotSupported, "ZZZ");
         _service
-            .Setup(s => s.GetProducts(0, 5, "ZZZ"))
-            .Throws(new ValidationException("Currency 'ZZZ' is not supported."));
+            .Setup(s => s.GetProductsAsync(0, 5, "ZZZ", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ValidationException(expectedMessage));
 
         var sut = CreateSut();
 
-        var ex = Assert.Throws<ValidationException>(() => sut.Get(0, 5, "ZZZ"));
-        Assert.Equal("Currency 'ZZZ' is not supported.", ex.Message);
+        var ex = await Assert.ThrowsAsync<ValidationException>(() => sut.Get(0, 5, "ZZZ"));
+        Assert.Equal(expectedMessage, ex.Message);
     }
 
     [Fact]
-    public void Get_WhenServiceThrowsUnexpectedException_PropagatesToMiddleware()
+    public async Task Get_WhenServiceThrowsUnexpectedException_PropagatesToMiddleware()
     {
         _service
-            .Setup(s => s.GetProducts(0, 5, "GBP"))
-            .Throws(new System.InvalidOperationException("data layer offline"));
+            .Setup(s => s.GetProductsAsync(0, 5, "GBP", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new System.InvalidOperationException("data layer offline"));
 
         var sut = CreateSut();
 
-        Assert.Throws<System.InvalidOperationException>(() => sut.Get(0, 5, "GBP"));
+        await Assert.ThrowsAsync<System.InvalidOperationException>(() => sut.Get(0, 5, "GBP"));
     }
 }

@@ -7,6 +7,8 @@ public static class Constants
         public const string PageStartNegative = "pageStart must be zero or greater.";
         public const string PageSizeNegative = "pageSize must be zero or greater.";
         public const string CurrencyNotSupported = "Currency '{0}' is not supported.";
+        public const string UnsupportedCurrency = "Unsupported currency '{0}'.";
+        public const string BaseCurrencyInvalid = "BaseCurrency must be a supported currency (GBP or EUR).";
 
         public const string InvalidRequestTitle = "Invalid request";
         public const string UnexpectedErrorTitle = "An unexpected error occurred.";

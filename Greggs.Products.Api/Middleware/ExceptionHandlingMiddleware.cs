@@ -27,7 +27,7 @@ public class ExceptionHandlingMiddleware
         catch (ValidationException ex)
         {
             _logger.LogWarning(ex, "Validation failure: {Message}", ex.Message);
-            await WriteProblemAsync(context, StatusCodes.Status400BadRequest, "Invalid request", ex.Message);
+            await WriteProblemAsync(context, StatusCodes.Status400BadRequest, Constants.ErrorMessages.InvalidRequestTitle, ex.Message);
         }
         catch (Exception ex)
         {

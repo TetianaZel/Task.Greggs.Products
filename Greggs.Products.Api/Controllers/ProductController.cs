@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Services;
 using Microsoft.AspNetCore.Http;
@@ -23,9 +25,9 @@ public class ProductController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public ActionResult<IEnumerable<ProductDto>> Get([FromQuery] int pageStart = Constants.Defaults.PageStart, [FromQuery] int pageSize = Constants.Defaults.PageSize,
-        [FromQuery] string currency = Constants.Defaults.Currency)
+    public async Task<ActionResult<IEnumerable<ProductDto>>> Get([FromQuery] int pageStart = Constants.Defaults.PageStart, [FromQuery] int pageSize = Constants.Defaults.PageSize,
+        [FromQuery] string currency = Constants.Defaults.Currency, CancellationToken cancellationToken = default)
     {
-        return Ok(_productService.GetProducts(pageStart, pageSize, currency));
+        return Ok(await _productService.GetProductsAsync(pageStart, pageSize, currency, cancellationToken));
     }
 }

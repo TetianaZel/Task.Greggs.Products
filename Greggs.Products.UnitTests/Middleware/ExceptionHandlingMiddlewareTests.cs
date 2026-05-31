@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -63,7 +64,8 @@ public class ExceptionHandlingMiddlewareTests
     public async Task InvokeAsync_ValidationException_Returns400ProblemDetails()
     {
         var ctx = CreateContext("/product");
-        RequestDelegate next = _ => throw new ValidationException("Currency 'ZZZ' is not supported.");
+        var expectedDetail = string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.CurrencyNotSupported, "ZZZ");
+        RequestDelegate next = _ => throw new ValidationException(expectedDetail);
 
         await CreateSut(next).InvokeAsync(ctx);
 
@@ -73,7 +75,7 @@ public class ExceptionHandlingMiddlewareTests
         var problem = await ReadProblemAsync(ctx);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.Status);
         Assert.Equal(Constants.ErrorMessages.InvalidRequestTitle, problem.Title);
-        Assert.Equal("Currency 'ZZZ' is not supported.", problem.Detail);
+        Assert.Equal(expectedDetail, problem.Detail);
         Assert.Equal("/product", problem.Instance);
     }
 
