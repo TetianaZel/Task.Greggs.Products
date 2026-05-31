@@ -1,6 +1,7 @@
 using Greggs.Products.Api.DataAccess;
 using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Services;
+using Greggs.Products.Api.Services.Currency;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -20,7 +21,10 @@ public class Startup
         services.AddControllers();
         services.AddSwaggerGen();
 
+        services.Configure<CurrencyOptions>(Configuration.GetSection(CurrencyOptions.SectionName));
+
         services.AddSingleton<IDataAccess<Product>, ProductAccess>();
+        services.AddSingleton<ICurrencyConverter, FixedRateCurrencyConverter>();
         services.AddScoped<IProductService, ProductService>();
     }
 
