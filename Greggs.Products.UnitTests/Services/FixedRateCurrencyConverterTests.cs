@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Services;
@@ -21,4 +24,21 @@ public class FixedRateCurrencyConverterTests
     [InlineData(0.50, 0.56)]
     public async Task ConvertAsync_GbpToEur_AppliesHardcodedRate(decimal gbp, decimal expectedEur)
         => Assert.Equal(expectedEur, await CreateSut().ConvertAsync(gbp, Currency.Gbp, Currency.Eur));
+
+    [Fact]
+    public async Task ConvertAsync_WhenFromRateIsZero_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        OverrideRate(sut, Currency.Eur.Code, 0m);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await sut.ConvertAsync(1m, Currency.Eur, Currency.Gbp));
+    }
+
+    private static void OverrideRate(FixedRateCurrencyConverter sut, string currencyCode, decimal rate)
+    {
+        var field = typeof(FixedRateCurrencyConverter).GetField("_rates", BindingFlags.Instance | BindingFlags.NonPublic);
+        var rates = (IDictionary<string, decimal>)field!.GetValue(sut)!;
+        rates[currencyCode] = rate;
+    }
 }

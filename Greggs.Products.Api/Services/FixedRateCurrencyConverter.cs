@@ -63,6 +63,16 @@ public class FixedRateCurrencyConverter : ICurrencyConverter
             throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.UnsupportedCurrency, to.Code), nameof(to));
         }
 
+        if (fromRate <= 0m)
+        {
+            throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.InvalidExchangeRate, from.Code));
+        }
+
+        if (toRate < 0m)
+        {
+            throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.InvalidExchangeRate, to.Code));
+        }
+
         var amountInBase = amount / fromRate;
         var converted = amountInBase * toRate;
 

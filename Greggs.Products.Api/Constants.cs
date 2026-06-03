@@ -9,6 +9,7 @@ public static class Constants
         public const string CurrencyNotSupported = "Currency '{0}' is not supported.";
         public const string UnsupportedCurrency = "Unsupported currency '{0}'.";
         public const string BaseCurrencyInvalid = "BaseCurrency must be a supported currency (GBP or EUR).";
+        public const string InvalidExchangeRate = "Exchange rate for currency '{0}' must be greater than zero.";
 
         public const string InvalidRequestTitle = "Invalid request";
         public const string UnexpectedErrorTitle = "An unexpected error occurred.";
