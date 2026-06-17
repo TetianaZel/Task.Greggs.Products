@@ -78,8 +78,12 @@ These were considered and deliberately left out:
 
 ## If I had another hour
 
-1. Response caching on `/product` keyed by `pageStart|pageSize|currency`.
-2. A live FX adapter behind `ICurrencyConverter` with Polly retry + `IDistributedCache`.
+1. First thing to add would probably be FluentValidation:
+    - Validating product creation/update payloads (name not empty, price > 0, valid currency code)
+    - Validating query parameters (e.g., pagination PageStart/PageSize ranges).
+    - Validating currency inputs
+2. Response caching on `/product` keyed by `pageStart|pageSize|currency`.
+3. A live FX adapter behind `ICurrencyConverter` with Polly retry + `IDistributedCache`.
 
 ---
 
