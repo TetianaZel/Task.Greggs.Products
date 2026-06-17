@@ -1,10 +1,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Currency = Greggs.Products.Api.Models.Currency;
+using Money = Greggs.Products.Api.Models.Money;
 
 namespace Greggs.Products.Api.Services;
 
 public interface ICurrencyConverter
 {
-    ValueTask<decimal> ConvertAsync(decimal amount, Currency from, Currency to, CancellationToken cancellationToken = default);
+    ValueTask<Money> ConvertAsync(Money amount, Currency to, CancellationToken cancellationToken = default);
 }

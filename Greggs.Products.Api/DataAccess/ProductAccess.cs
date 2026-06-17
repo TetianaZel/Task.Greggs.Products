@@ -12,14 +12,14 @@ public class ProductAccess : IDataAccess<Product>
 {
     private static readonly IEnumerable<Product> ProductDatabase = new List<Product>()
     {
-        new() { Name = "Sausage Roll", PriceInPounds = 1m },
-        new() { Name = "Vegan Sausage Roll", PriceInPounds = 1.1m },
-        new() { Name = "Steak Bake", PriceInPounds = 1.2m },
-        new() { Name = "Yum Yum", PriceInPounds = 0.7m },
-        new() { Name = "Pink Jammie", PriceInPounds = 0.5m },
-        new() { Name = "Mexican Baguette", PriceInPounds = 2.1m },
-        new() { Name = "Bacon Sandwich", PriceInPounds = 1.95m },
-        new() { Name = "Coca Cola", PriceInPounds = 1.2m }
+        new() { Name = "Sausage Roll", Price = new Money(1m, Currency.Gbp) },
+        new() { Name = "Vegan Sausage Roll", Price = new Money(1.1m, Currency.Gbp) },
+        new() { Name = "Steak Bake", Price = new Money(1.2m, Currency.Gbp) },
+        new() { Name = "Yum Yum", Price = new Money(0.7m, Currency.Gbp) },
+        new() { Name = "Pink Jammie", Price = new Money(0.5m, Currency.Gbp) },
+        new() { Name = "Mexican Baguette", Price = new Money(2.1m, Currency.Gbp) },
+        new() { Name = "Bacon Sandwich", Price = new Money(1.95m, Currency.Gbp) },
+        new() { Name = "Coca Cola", Price = new Money(1.2m, Currency.Gbp) }
     };
 
     public async IAsyncEnumerable<Product> List(int? pageStart, int? pageSize)

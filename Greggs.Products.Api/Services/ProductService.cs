@@ -66,12 +66,12 @@ public class ProductService : IProductService
 
         foreach (var p in products)
         {
-            var price = await _currencyConverter.ConvertAsync(p.PriceInPounds, StorageCurrency, targetCurrency, cancellationToken).ConfigureAwait(false);
+            var price = await _currencyConverter.ConvertAsync(p.Price, targetCurrency, cancellationToken).ConfigureAwait(false);
             results.Add(new ProductDto
             {
                 Name = p.Name,
-                Price = price,
-                Currency = targetCurrency.Code
+                Price = price.Amount,
+                Currency = price.Currency.Code
             });
         }
 

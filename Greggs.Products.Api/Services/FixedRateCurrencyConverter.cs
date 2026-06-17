@@ -46,16 +46,18 @@ public class FixedRateCurrencyConverter : ICurrencyConverter
         };
     }
 
-    public ValueTask<decimal> ConvertAsync(decimal amount, Currency from, Currency to, CancellationToken cancellationToken = default)
+    public ValueTask<Money> ConvertAsync(Money amount, Currency to, CancellationToken cancellationToken = default)
     {
+        var from = amount.Currency;
+
         if (from == to)
         {
-            return new ValueTask<decimal>(amount);
+            return new ValueTask<Money>(amount);
         }
 
         if (!_rates.TryGetValue(from.Code, out var fromRate))
         {
-            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.UnsupportedCurrency, from.Code), nameof(from));
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.UnsupportedCurrency, from.Code), nameof(amount));
         }
 
         if (!_rates.TryGetValue(to.Code, out var toRate))
@@ -73,9 +75,9 @@ public class FixedRateCurrencyConverter : ICurrencyConverter
             throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Constants.ErrorMessages.InvalidExchangeRate, to.Code));
         }
 
-        var amountInBase = amount / fromRate;
+        var amountInBase = amount.Amount / fromRate;
         var converted = amountInBase * toRate;
 
-        return new ValueTask<decimal>(Math.Round(converted, 2, MidpointRounding.ToEven));
+        return new ValueTask<Money>(new Money(Math.Round(converted, 2, MidpointRounding.ToEven), to));
     }
 }

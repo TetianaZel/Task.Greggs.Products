@@ -16,14 +16,14 @@ public class FixedRateCurrencyConverterTests
 
     [Fact]
     public async Task ConvertAsync_SameCurrency_ReturnsSameAmount()
-        => Assert.Equal(1.00m, await CreateSut().ConvertAsync(1m, Currency.Gbp, Currency.Gbp));
+        => Assert.Equal(new Money(1.00m, Currency.Gbp), await CreateSut().ConvertAsync(new Money(1m, Currency.Gbp), Currency.Gbp));
 
     [Theory]
     [InlineData(1.00, 1.11)]
     [InlineData(2.10, 2.33)]
     [InlineData(0.50, 0.56)]
     public async Task ConvertAsync_GbpToEur_AppliesHardcodedRate(decimal gbp, decimal expectedEur)
-        => Assert.Equal(expectedEur, await CreateSut().ConvertAsync(gbp, Currency.Gbp, Currency.Eur));
+        => Assert.Equal(new Money(expectedEur, Currency.Eur), await CreateSut().ConvertAsync(new Money(gbp, Currency.Gbp), Currency.Eur));
 
     [Fact]
     public async Task ConvertAsync_WhenFromRateIsZero_ThrowsInvalidOperationException()
@@ -32,7 +32,7 @@ public class FixedRateCurrencyConverterTests
         OverrideRate(sut, Currency.Eur.Code, 0m);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await sut.ConvertAsync(1m, Currency.Eur, Currency.Gbp));
+            async () => await sut.ConvertAsync(new Money(1m, Currency.Eur), Currency.Gbp));
     }
 
     private static void OverrideRate(FixedRateCurrencyConverter sut, string currencyCode, decimal rate)

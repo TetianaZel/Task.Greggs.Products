@@ -39,8 +39,8 @@ public class ProductServiceTests
     public async Task GetProducts_ConvertsPriceAndTagsCurrency()
     {
         _dataAccess.Setup(d => d.List(0, 5))
-                   .Returns(new[] { new Product { Name = "Sausage Roll", PriceInPounds = 1m } }.ToAsyncEnumerable());
-        _converter.Setup(c => c.ConvertAsync(1m, Currency.Gbp, Currency.Eur, It.IsAny<CancellationToken>())).ReturnsAsync(1.11m);
+                   .Returns(new[] { new Product { Name = "Sausage Roll", Price = new Money(1m, Currency.Gbp) } }.ToAsyncEnumerable());
+        _converter.Setup(c => c.ConvertAsync(new Money(1m, Currency.Gbp), Currency.Eur, It.IsAny<CancellationToken>())).ReturnsAsync(new Money(1.11m, Currency.Eur));
 
         var result = (await CreateSut().GetProductsAsync(0, 5, "eur")).Single();
 
@@ -53,11 +53,11 @@ public class ProductServiceTests
     public async Task GetProducts_BaseCurrencyEur_StillConvertsFromGbp_NotFromConfiguredBase()
     {
         // BaseCurrency only sets the DEFAULT display/target currency. Prices are stored in GBP
-        // (Product.PriceCurrency), so conversion must always be FROM GBP - even when the base is EUR.
+        // (Product.Price.Currency), so conversion must always be FROM GBP - even when the base is EUR.
         var options = Options.Create(new CurrencyOptions { BaseCurrency = Currency.Eur.Code });
         _dataAccess.Setup(d => d.List(0, 5))
-                   .Returns(new[] { new Product { Name = "Sausage Roll", PriceInPounds = 1m } }.ToAsyncEnumerable());
-        _converter.Setup(c => c.ConvertAsync(1m, Currency.Gbp, Currency.Eur, It.IsAny<CancellationToken>())).ReturnsAsync(1.11m);
+                   .Returns(new[] { new Product { Name = "Sausage Roll", Price = new Money(1m, Currency.Gbp) } }.ToAsyncEnumerable());
+        _converter.Setup(c => c.ConvertAsync(new Money(1m, Currency.Gbp), Currency.Eur, It.IsAny<CancellationToken>())).ReturnsAsync(new Money(1.11m, Currency.Eur));
 
         var sut = new ProductService(_dataAccess.Object, _converter.Object, options);
 
@@ -66,9 +66,9 @@ public class ProductServiceTests
 
         Assert.Equal(1.11m, result.Price);
         Assert.Equal("EUR", result.Currency);
-        _converter.Verify(c => c.ConvertAsync(1m, Currency.Gbp, Currency.Eur, It.IsAny<CancellationToken>()), Times.Once);
+        _converter.Verify(c => c.ConvertAsync(new Money(1m, Currency.Gbp), Currency.Eur, It.IsAny<CancellationToken>()), Times.Once);
         // The configured base must never be used as the conversion source (the silent-reinterpretation bug).
-        _converter.Verify(c => c.ConvertAsync(It.IsAny<decimal>(), Currency.Eur, It.IsAny<Currency>(), It.IsAny<CancellationToken>()), Times.Never);
+        _converter.Verify(c => c.ConvertAsync(It.Is<Money>(m => m.Currency == Currency.Eur), It.IsAny<Currency>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
