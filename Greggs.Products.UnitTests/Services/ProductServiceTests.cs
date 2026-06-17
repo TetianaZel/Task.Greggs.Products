@@ -50,6 +50,28 @@ public class ProductServiceTests
     }
 
     [Fact]
+    public async Task GetProducts_BaseCurrencyEur_StillConvertsFromGbp_NotFromConfiguredBase()
+    {
+        // BaseCurrency only sets the DEFAULT display/target currency. Prices are stored in GBP
+        // (Product.PriceCurrency), so conversion must always be FROM GBP - even when the base is EUR.
+        var options = Options.Create(new CurrencyOptions { BaseCurrency = Currency.Eur.Code });
+        _dataAccess.Setup(d => d.List(0, 5))
+                   .Returns(new[] { new Product { Name = "Sausage Roll", PriceInPounds = 1m } }.ToAsyncEnumerable());
+        _converter.Setup(c => c.ConvertAsync(1m, Currency.Gbp, Currency.Eur, It.IsAny<CancellationToken>())).ReturnsAsync(1.11m);
+
+        var sut = new ProductService(_dataAccess.Object, _converter.Object, options);
+
+        // No currency requested -> target defaults to the configured base (EUR).
+        var result = (await sut.GetProductsAsync(0, 5, null)).Single();
+
+        Assert.Equal(1.11m, result.Price);
+        Assert.Equal("EUR", result.Currency);
+        _converter.Verify(c => c.ConvertAsync(1m, Currency.Gbp, Currency.Eur, It.IsAny<CancellationToken>()), Times.Once);
+        // The configured base must never be used as the conversion source (the silent-reinterpretation bug).
+        _converter.Verify(c => c.ConvertAsync(It.IsAny<decimal>(), Currency.Eur, It.IsAny<Currency>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetProducts_UnsupportedCurrency_ThrowsValidationException_AndShortCircuits()
     {
         var ex = await Assert.ThrowsAsync<ValidationException>(() => CreateSut().GetProductsAsync(0, 5, "USD"));

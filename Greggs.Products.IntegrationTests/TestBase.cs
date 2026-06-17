@@ -15,8 +15,7 @@ namespace Greggs.Products.IntegrationTests
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Currency:BaseCurrency"] = "GBP",
-                    ["Currency:ExchangeRates:EUR"] = "1.11"
+                    ["Currency:BaseCurrency"] = "GBP"
                 });
             });
         }

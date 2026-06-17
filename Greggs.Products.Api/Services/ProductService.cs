@@ -13,9 +13,11 @@ namespace Greggs.Products.Api.Services;
 
 public class ProductService : IProductService
 {
+    private static readonly Currency StorageCurrency = Currency.Gbp;
+
     private readonly IDataAccess<Product> _productData;
     private readonly ICurrencyConverter _currencyConverter;
-    private readonly Currency _sourceCurrency;
+    private readonly Currency _baseCurrency;
 
     public ProductService(
         IDataAccess<Product> productData,
@@ -25,7 +27,7 @@ public class ProductService : IProductService
         _productData = productData ?? throw new ArgumentNullException(nameof(productData));
         _currencyConverter = currencyConverter ?? throw new ArgumentNullException(nameof(currencyConverter));
 
-        if (!Currency.TryParse(options.Value.BaseCurrency, out _sourceCurrency))
+        if (!Currency.TryParse(options.Value.BaseCurrency, out _baseCurrency))
         {
             throw new InvalidOperationException(Constants.ErrorMessages.BaseCurrencyInvalid);
         }
@@ -46,7 +48,7 @@ public class ProductService : IProductService
         Currency targetCurrency;
         if (string.IsNullOrWhiteSpace(currency))
         {
-            targetCurrency = _sourceCurrency;
+            targetCurrency = _baseCurrency;
         }
         else if (!Currency.TryParse(currency, out targetCurrency))
         {
@@ -64,7 +66,7 @@ public class ProductService : IProductService
 
         foreach (var p in products)
         {
-            var price = await _currencyConverter.ConvertAsync(p.PriceInPounds, _sourceCurrency, targetCurrency, cancellationToken).ConfigureAwait(false);
+            var price = await _currencyConverter.ConvertAsync(p.PriceInPounds, StorageCurrency, targetCurrency, cancellationToken).ConfigureAwait(false);
             results.Add(new ProductDto
             {
                 Name = p.Name,
