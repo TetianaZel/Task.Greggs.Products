@@ -67,7 +67,6 @@ public class ProductServiceTests
         Assert.Equal(1.11m, result.Price);
         Assert.Equal("EUR", result.Currency);
         _converter.Verify(c => c.ConvertAsync(new Money(1m, Currency.Gbp), Currency.Eur, It.IsAny<CancellationToken>()), Times.Once);
-        // The configured base must never be used as the conversion source (the silent-reinterpretation bug).
         _converter.Verify(c => c.ConvertAsync(It.Is<Money>(m => m.Currency == Currency.Eur), It.IsAny<Currency>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
